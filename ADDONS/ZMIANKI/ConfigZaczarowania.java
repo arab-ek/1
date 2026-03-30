@@ -20,13 +20,21 @@ public class ConfigZaczarowania {
   private FileConfiguration config;
   
   private File file;
-  
+
   public ConfigZaczarowania(Main plugin) {
     this.plugin = plugin;
-    this.file = new File(plugin.getDataFolder(), "config-zaczarowania.yml");
-    if (!this.file.exists())
-      plugin.saveResource("config-zaczarowania.yml", false); 
-    this.config = (FileConfiguration)YamlConfiguration.loadConfiguration(this.file);
+    File addonsFolder = new File(plugin.getDataFolder(), "addons");
+    if (!addonsFolder.exists()) {
+      addonsFolder.mkdirs();
+    }
+
+    this.file = new File(addonsFolder, "config-zaczarowania.yml");
+
+    if (!this.file.exists()) {
+      plugin.saveResource("addons/config-zaczarowania.yml", false);
+    }
+
+    this.config = (FileConfiguration) YamlConfiguration.loadConfiguration(this.file);
   }
   
   public void reload() {

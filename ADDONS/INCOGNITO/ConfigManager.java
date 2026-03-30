@@ -12,9 +12,9 @@ public class ConfigManager {
   
   public ConfigManager(JavaPlugin plugin) {
     this.plugin = plugin;
-    File configFile = new File(plugin.getDataFolder(), "config-incognito.yml");
+    File configFile = new File(plugin.getDataFolder(), "addons/config-incognito.yml");
     if (!configFile.exists())
-      plugin.saveResource("config-incognito.yml", false); 
+      plugin.saveResource("addons/config-incognito.yml", false);
     this.config = (FileConfiguration)YamlConfiguration.loadConfiguration(configFile);
   }
   
@@ -31,7 +31,7 @@ public class ConfigManager {
   }
   
   public void reloadConfig() {
-    File configFile = new File(this.plugin.getDataFolder(), "config-incognito.yml");
+    File configFile = new File(this.plugin.getDataFolder(), "addons/config-incognito.yml");
     this.config = (FileConfiguration)YamlConfiguration.loadConfiguration(configFile);
   }
 }

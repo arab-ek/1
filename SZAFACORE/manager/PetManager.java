@@ -15,35 +15,7 @@ import dev.arab.Main;
 import dev.arab.SZAFACORE.data.PetData;
 import dev.arab.SZAFACORE.pets.Pet;
 import dev.arab.SZAFACORE.pets.PetRegistry;
-import dev.arab.SZAFACORE.pets.pety.AniolekPet;
-import dev.arab.SZAFACORE.pets.pety.BalwanekPet;
-import dev.arab.SZAFACORE.pets.pety.BiznesmenikPet;
-import dev.arab.SZAFACORE.pets.pety.BobasPet;
-import dev.arab.SZAFACORE.pets.pety.CukiereczekPet;
-import dev.arab.SZAFACORE.pets.pety.CyberObroncaPet;
-import dev.arab.SZAFACORE.pets.pety.DiscordzikPet;
-import dev.arab.SZAFACORE.pets.pety.DrakulaPet;
-import dev.arab.SZAFACORE.pets.pety.DuszekPet;
-import dev.arab.SZAFACORE.pets.pety.ElfikPet;
-import dev.arab.SZAFACORE.pets.pety.EndermanPet;
-import dev.arab.SZAFACORE.pets.pety.EustachyPet;
-import dev.arab.SZAFACORE.pets.pety.GlodomorekPet;
-import dev.arab.SZAFACORE.pets.pety.GolemikPet;
-import dev.arab.SZAFACORE.pets.pety.NietoperekPet;
-import dev.arab.SZAFACORE.pets.pety.PaczusPet;
-import dev.arab.SZAFACORE.pets.pety.PajakPet;
-import dev.arab.SZAFACORE.pets.pety.PancernikPet;
-import dev.arab.SZAFACORE.pets.pety.PedziwiatrPet;
-import dev.arab.SZAFACORE.pets.pety.PierniczekPet;
-import dev.arab.SZAFACORE.pets.pety.PisklakPet;
-import dev.arab.SZAFACORE.pets.pety.PudzianekPet;
-import dev.arab.SZAFACORE.pets.pety.ReniferekPet;
-import dev.arab.SZAFACORE.pets.pety.RozdymekPet;
-import dev.arab.SZAFACORE.pets.pety.SkalniaczekPet;
-import dev.arab.SZAFACORE.pets.pety.SowaPet;
-import dev.arab.SZAFACORE.pets.pety.TelekrolikPet;
-import dev.arab.SZAFACORE.pets.pety.TorcikPet;
-import dev.arab.SZAFACORE.pets.pety.ZajaczekPet;
+import dev.arab.SZAFACORE.pets.pety.*;
 import dev.arab.SZAFACORE.util.TimeConverter;
 import dev.arab.SZAFACORE.util.UniqueIdUtils;
 import org.bukkit.Bukkit;
@@ -113,60 +85,67 @@ public class PetManager implements Listener {
         this.petRegistry.register(new TelekrolikPet());
         this.petRegistry.register(new EndermanPet());
         this.petRegistry.register(new BiznesmenikPet());
+        this.petRegistry.register(new LeniuszekPet());
     }
 
     private void loadData() {
-        this.dataFile = new File(this.plugin.getDataFolder(), "pet_data.yml");
+        // 1. Tworzymy główny folder "data"
+        File dataFolder = new File(this.plugin.getDataFolder(), "data");
+        if (!dataFolder.exists()) {
+            dataFolder.mkdirs();
+        }
+
+        // 2. Łączymy plik pet_data.yml z nowym folderem
+        this.dataFile = new File(dataFolder, "pet_data.yml");
         if (!this.dataFile.exists()) {
             try {
                 this.dataFile.createNewFile();
-            } catch (IOException var8) {
-                var8.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
 
+        // 3. Wczytujemy konfigurację z dysku
         this.dataConfig = YamlConfiguration.loadConfiguration(this.dataFile);
-        Iterator var1 = this.dataConfig.getKeys(false).iterator();
 
-        while(var1.hasNext()) {
-            String key = (String)var1.next();
-            UUID uuid = UUID.fromString(key);
-            String petId = this.dataConfig.getString(key + ".petId");
-            String uniqueId = this.dataConfig.getString(key + ".uniqueId");
-            long expiry = this.dataConfig.getLong(key + ".expiry");
-            this.activePets.put(uuid, new PetData(petId, uniqueId, expiry));
+        // 4. Wczytujemy aktywne pety graczy do pamięci
+        for (String key : this.dataConfig.getKeys(false)) {
+            try {
+                UUID uuid = UUID.fromString(key);
+                String petId = this.dataConfig.getString(key + ".petId");
+                String uniqueId = this.dataConfig.getString(key + ".uniqueId");
+                long expiry = this.dataConfig.getLong(key + ".expiry");
+
+                this.activePets.put(uuid, new PetData(petId, uniqueId, expiry));
+            } catch (Exception e) {
+                this.plugin.getLogger().warning("Blad podczas wczytywania peta dla UUID: " + key);
+            }
         }
-
     }
 
-    private void saveData() {
-        Iterator var1 = this.dataConfig.getKeys(false).iterator();
-
-        while(var1.hasNext()) {
-            String key = (String)var1.next();
-            this.dataConfig.set(key, (Object)null);
+    public void saveData() {
+        // Czyścimy starą konfigurację przed zapisem nowych danych
+        for (String key : this.dataConfig.getKeys(false)) {
+            this.dataConfig.set(key, null);
         }
 
-        var1 = this.activePets.entrySet().iterator();
+        // Mapujemy aktywne pety do konfiguracji
+        for (Map.Entry<UUID, PetData> entry : this.activePets.entrySet()) {
+            String key = entry.getKey().toString();
+            PetData data = entry.getValue();
 
-        while(var1.hasNext()) {
-            Entry<UUID, PetData> entry = (Entry)var1.next();
-            String key = ((UUID)entry.getKey()).toString();
-            this.dataConfig.set(key + ".petId", ((PetData)entry.getValue()).getPetId());
-            this.dataConfig.set(key + ".uniqueId", ((PetData)entry.getValue()).getUniqueId());
-            this.dataConfig.set(key + ".expiry", ((PetData)entry.getValue()).getExpiryTimestamp());
+            this.dataConfig.set(key + ".petId", data.getPetId());
+            this.dataConfig.set(key + ".uniqueId", data.getUniqueId());
+            this.dataConfig.set(key + ".expiry", data.getExpiryTimestamp());
         }
 
-        FileConfiguration configToSave = this.dataConfig;
-        File targetFile = this.dataFile;
-        this.plugin.getServer().getScheduler().runTaskAsynchronously(this.plugin, () -> {
-            try {
-                configToSave.save(targetFile);
-            } catch (IOException var3) {
-                var3.printStackTrace();
-            }
-
-        });
+        try {
+            // ZAPIS SYNCHRONICZNY: Kluczowy, aby dane nie znikały przy restarcie/wyłączeniu
+            this.dataConfig.save(this.dataFile);
+        } catch (IOException e) {
+            this.plugin.getLogger().severe("Blad podczas zapisu pet_data.yml: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     public void activatePet(Player player, String petId) {

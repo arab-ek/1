@@ -1,7 +1,6 @@
 package dev.arab;
 
 import java.io.File;
-import java.util.Iterator;
 import java.util.Random;
 import dev.arab.EVENTOWKICORE.commands.AnarchiaEventowkiCommand;
 import dev.arab.EVENTOWKICORE.commands.ExcaliburCommand;
@@ -88,7 +87,33 @@ import dev.arab.ADDONS.TRYB_TWORCY.managers.TrybTworcyManager;
 import dev.arab.ADDONS.ZMIANKI.ConfigZaczarowania;
 import dev.arab.ADDONS.ZMIANKI.ZaczarowanieListener;
 import dev.arab.ADDONS.ZMIANKI.ZmiakaCommand;
+import dev.arab.TOOLS.AFK.AfkZoneController;
+import dev.arab.TOOLS.AFK.ConfigAfk;
+import dev.arab.TOOLS.AFK.SpawnAfkController;
+import dev.arab.TOOLS.CLEANER.CleanerController;
+import dev.arab.TOOLS.DRAGON.ConfigDragonBoss;
+import dev.arab.TOOLS.DRAGON.DragonBossListener;
+import dev.arab.TOOLS.DRAGON.DragonBossManager;
+import dev.arab.TOOLS.DRAGON.DragonCommand;
+import dev.arab.TOOLS.EXPLOSIONS.AntiExplosiveController;
+import dev.arab.TOOLS.EXPLOSIONS.ConfigExplosions;
+import dev.arab.TOOLS.HOME.ConfigHome;
+import dev.arab.TOOLS.HOME.HomeCommand;
+import dev.arab.TOOLS.HOME.HomeGui;
+import dev.arab.TOOLS.HOME.HomeManager;
+import dev.arab.TOOLS.PROTECTION.AntiHouseController;
+import dev.arab.TOOLS.PROTECTION.BorderController;
+import dev.arab.TOOLS.PROTECTION.ConfigProtection;
+import dev.arab.TOOLS.PROTECTION.RedstoneRestrictionController;
+import dev.arab.TOOLS.RTP.ConfigRtp;
+import dev.arab.TOOLS.RTP.RtpButtonListener;
+import dev.arab.TOOLS.RTP.RtpCommand;
+import dev.arab.TOOLS.RTP.RtpManager;
+import dev.arab.TOOLS.SPRAWDZANIE.*;
+import dev.arab.TOOLS.VOID.ConfigVoid;
+import dev.arab.TOOLS.VOID.VoidDropController;
 import net.milkbowl.vault.economy.Economy;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -119,6 +144,12 @@ public final class Main extends JavaPlugin {
     private FileConfiguration messagesConfig;
     private File messagesFile;
 
+    // --- Narzędzia ---
+    private CleanerController cleanerController;
+    private HomeManager homeManager;
+    private DragonBossManager dragonBossManager;
+    private AfkZoneController afkZoneController; // <- DODANO ZMIENNĄ DLA AFK
+
     public void onEnable() {
         this.saveDefaultConfig();
         PetVisibilityManager.init(this);
@@ -131,6 +162,7 @@ public final class Main extends JavaPlugin {
         this.trybTworcyManager = new TrybTworcyManager(this);
         this.moduleInventory = new ModuleInventory(this);
         this.configPvpCore = new ConfigPvpCore(this);
+
         if (!this.setupEconomy()) {
             this.getLogger().warning("Nie znaleziono Vaulta!");
         }
@@ -158,66 +190,110 @@ public final class Main extends JavaPlugin {
             (new IncognitoExpansion(this, this.incognitoManager)).register();
         }
 
+        this.registerEventItems();
+        this.getCommand("anarchiaeventowki").setExecutor(new AnarchiaEventowkiCommand(this));
+        this.getCommand("anarchiaeventowki").setTabCompleter(new AnarchiaEventowkiCommand(this));
+        this.getCommand("excalibur").setExecutor(new ExcaliburCommand(this));
+        this.getCommand("szafa").setExecutor(new SzafaCommand(this));
+        this.getCommand("aszafa").setExecutor(new AdminSzafaCommand(this));
+        this.getCommand("aszafa").setTabCompleter(new AdminSzafaCommand(this));
+        this.getCommand("azmianki").setExecutor(new ZmiakaCommand(this, this.configZaczarowania));
+        this.getCommand("azmianki").setTabCompleter(new ZmiakaCommand(this, this.configZaczarowania));
+        this.getCommand("ksiegi").setExecutor(new KsiegiCommand(this, this.bookManager));
+        this.getCommand("incognito").setExecutor(new IncognitoCommand(this, this.incognitoManager));
+        this.getCommand("trybtworcy").setExecutor(new TrybTworcyCommand(this, this.trybTworcyManager));
+        this.getCommand("trybtworcy").setTabCompleter(new TrybTworcyCommand(this, this.trybTworcyManager));
+
         this.getServer().getPluginManager().registerEvents(new TrybTworcyListener(this.trybTworcyManager), this);
         this.getServer().getPluginManager().registerEvents(new ModuleInventoryListener(this, this.moduleInventory), this);
         this.getServer().getPluginManager().registerEvents(new DamageLimitListener(this.configPvpCore), this);
-        this.registerEventItems();
-        AnarchiaEventowkiCommand anarchiaCmd = new AnarchiaEventowkiCommand(this);
-        this.getCommand("anarchiaeventowki").setExecutor(anarchiaCmd);
-        this.getCommand("anarchiaeventowki").setTabCompleter(anarchiaCmd);
-        this.getCommand("excalibur").setExecutor(new ExcaliburCommand(this));
-        this.getCommand("szafa").setExecutor(new SzafaCommand(this));
-        AdminSzafaCommand adminCmd = new AdminSzafaCommand(this);
-        this.getCommand("aszafa").setExecutor(adminCmd);
-        this.getCommand("aszafa").setTabCompleter(adminCmd);
-        ZmiakaCommand zmiakiCmd = new ZmiakaCommand(this, this.configZaczarowania);
-        this.getCommand("azmianki").setExecutor(zmiakiCmd);
-        this.getCommand("azmianki").setTabCompleter(zmiakiCmd);
-        this.getCommand("ksiegi").setExecutor(new KsiegiCommand(this, this.bookManager));
-        this.getCommand("incognito").setExecutor(new IncognitoCommand(this, this.incognitoManager));
-        TrybTworcyCommand creatorCmd = new TrybTworcyCommand(this, this.trybTworcyManager);
-        this.getCommand("trybtworcy").setExecutor(creatorCmd);
-        this.getCommand("trybtworcy").setTabCompleter(creatorCmd);
-        Iterator var6 = this.getServer().getOnlinePlayers().iterator();
 
-        while(var6.hasNext()) {
-            Player player = (Player)var6.next();
+        // --- INICJALIZACJA TOOLSOW ---
+
+        // Cleaner
+        dev.arab.TOOLS.CLEANER.ConfigCleaner configCleaner = new dev.arab.TOOLS.CLEANER.ConfigCleaner(this);
+        this.cleanerController = new dev.arab.TOOLS.CLEANER.CleanerController(this, configCleaner);
+        this.getServer().getPluginManager().registerEvents(this.cleanerController, this);
+
+        // Home
+        this.homeManager = new HomeManager(this);
+        ConfigHome configHome = new ConfigHome(this);
+        HomeGui homeGui = new HomeGui(this.homeManager, configHome);
+        HomeCommand homeCmd = new HomeCommand(this.homeManager, configHome, homeGui);
+        this.getServer().getPluginManager().registerEvents(homeGui, this);
+        this.getCommand("home").setExecutor(homeCmd);
+        this.getCommand("sethome").setExecutor(homeCmd);
+        this.getCommand("delhome").setExecutor(homeCmd);
+
+        // Dragon Boss
+        ConfigDragonBoss configDragonBoss = new ConfigDragonBoss(this);
+        this.dragonBossManager = new DragonBossManager(this, configDragonBoss);
+        this.getServer().getPluginManager().registerEvents(new DragonBossListener(this.dragonBossManager), this);
+        this.getCommand("boss").setExecutor(new DragonCommand(this.dragonBossManager));
+
+        // Sprawdzanie
+        ConfigSprawdzania configSprawdzania = new ConfigSprawdzania(this);
+        CheckManager checkManager = new CheckManager(this, configSprawdzania);
+        SprawdzCommand sprawdzCmd = new SprawdzCommand(checkManager, configSprawdzania);
+        this.getServer().getPluginManager().registerEvents(new CheckController(checkManager, configSprawdzania), this);
+        this.getCommand("sprawdz").setExecutor(sprawdzCmd);
+        this.getCommand("sprawdz").setTabCompleter(sprawdzCmd);
+        this.getCommand("przyznajsie").setExecutor(new PrzyznajeSieCommand(checkManager, configSprawdzania));
+
+        // RTP
+        ConfigRtp configRtp = new ConfigRtp(this);
+        RtpManager rtpManager = new RtpManager(this, configRtp);
+        this.getServer().getPluginManager().registerEvents(new RtpButtonListener(rtpManager), this);
+        this.getCommand("rtp").setExecutor(new RtpCommand(this, configRtp, rtpManager));
+
+        // AFK Zone
+        ConfigAfk configAfk = new ConfigAfk(this);
+        this.afkZoneController = new AfkZoneController(this, configAfk); // <- ZAPIS DO ZMIENNEJ
+        this.getServer().getPluginManager().registerEvents(this.afkZoneController, this);
+        this.getServer().getPluginManager().registerEvents(new SpawnAfkController(this, configAfk), this);
+
+        // Ochrona & Void
+        ConfigExplosions configExplosions = new ConfigExplosions(this);
+        ConfigVoid configVoid = new ConfigVoid(this);
+        ConfigProtection configProtection = new ConfigProtection(this);
+        this.getServer().getPluginManager().registerEvents(new VoidDropController(this, configVoid), this);
+        this.getServer().getPluginManager().registerEvents(new AntiExplosiveController(configExplosions), this);
+        this.getServer().getPluginManager().registerEvents(new RedstoneRestrictionController(configProtection), this);
+        this.getServer().getPluginManager().registerEvents(new BorderController(configProtection), this);
+        this.getServer().getPluginManager().registerEvents(new AntiHouseController(configProtection), this);
+
+        // Aktualizacja statystyk graczy przy restarcie/reloadzie
+        for (Player player : Bukkit.getOnlinePlayers()) {
             StatsManager.updateStats(player);
         }
 
+        // Ticki / Taski
         (new ActionBarTask(this)).runTaskTimer(this, 1L, 5L);
         (new PassiveEffectTask(this)).runTaskTimer(this, 20L, 40L);
         (new BukkitRunnable() {
             private int tick = 0;
-
             public void run() {
                 if (this.tick++ % 1200 == 0) {
                     Main.this.eventItemManager.updateAllInventories();
                 }
             }
         }).runTaskTimer(this, 1L, 1L);
+
         this.loadMessages();
         this.getLogger().info("Plugin zostal pomyslnie wlaczony!");
     }
 
-    public EventItemManager getEventItemManager() {
-        return this.eventItemManager;
-    }
+    // --- Reszta metod pozostaje bez zmian ---
 
-    public ItemListener getItemListener() {
-        return this.itemListener;
-    }
-
-    public Random getRandom() {
-        return this.random;
-    }
+    public EventItemManager getEventItemManager() { return this.eventItemManager; }
+    public ItemListener getItemListener() { return this.itemListener; }
+    public Random getRandom() { return this.random; }
 
     public void loadMessages() {
         this.messagesFile = new File(this.getDataFolder(), "messages.yml");
         if (!this.messagesFile.exists()) {
             this.saveResource("messages.yml", false);
         }
-
         this.messagesConfig = YamlConfiguration.loadConfiguration(this.messagesFile);
     }
 
@@ -225,13 +301,10 @@ public final class Main extends JavaPlugin {
         if (this.messagesConfig == null) {
             this.loadMessages();
         }
-
         return this.messagesConfig;
     }
 
-    public FileConfiguration getMessages() {
-        return this.getMessagesConfig();
-    }
+    public FileConfiguration getMessages() { return this.getMessagesConfig(); }
 
     private void registerEventItems() {
         this.eventItemManager.registerItem(new CiepleMleko(this));
@@ -285,57 +358,19 @@ public final class Main extends JavaPlugin {
         this.eventItemManager.registerItem(new LukKupidyna(this));
     }
 
-    public WorldGuardHook getWorldGuardHook() {
-        return this.worldGuardHook;
-    }
-
-    public BlockTracker getBlockTracker() {
-        return this.blockTracker;
-    }
-
-    public CooldownManager getCooldownManager() {
-        return this.cooldownManager;
-    }
-
-    public ConfigManager getConfigManager() {
-        return this.configManager;
-    }
-
-    public PetManager getPetManager() {
-        return this.petManager;
-    }
-
-    public EquipmentCacheManager getEquipmentCacheManager() {
-        return this.equipmentCacheManager;
-    }
-
-    public CostumeManager getCostumeManager() {
-        return this.costumeManager;
-    }
-
-    public ParrotManager getParrotManager() {
-        return this.parrotManager;
-    }
-
-    public BookManager getBookManager() {
-        return this.bookManager;
-    }
-
-    public ModuleInventory getModuleInventory() {
-        return this.moduleInventory;
-    }
-
-    public IncognitoManager getIncognitoManager() {
-        return this.incognitoManager;
-    }
-
-    public TrybTworcyManager getTrybTworcyManager() {
-        return this.trybTworcyManager;
-    }
-
-    public static Economy getEconomy() {
-        return econ;
-    }
+    public WorldGuardHook getWorldGuardHook() { return this.worldGuardHook; }
+    public BlockTracker getBlockTracker() { return this.blockTracker; }
+    public CooldownManager getCooldownManager() { return this.cooldownManager; }
+    public ConfigManager getConfigManager() { return this.configManager; }
+    public PetManager getPetManager() { return this.petManager; }
+    public EquipmentCacheManager getEquipmentCacheManager() { return this.equipmentCacheManager; }
+    public CostumeManager getCostumeManager() { return this.costumeManager; }
+    public ParrotManager getParrotManager() { return this.parrotManager; }
+    public BookManager getBookManager() { return this.bookManager; }
+    public ModuleInventory getModuleInventory() { return this.moduleInventory; }
+    public IncognitoManager getIncognitoManager() { return this.incognitoManager; }
+    public TrybTworcyManager getTrybTworcyManager() { return this.trybTworcyManager; }
+    public static Economy getEconomy() { return econ; }
 
     private boolean setupEconomy() {
         if (this.getServer().getPluginManager().getPlugin("Vault") == null) {
@@ -345,13 +380,29 @@ public final class Main extends JavaPlugin {
             if (rsp == null) {
                 return false;
             } else {
-                econ = (Economy)rsp.getProvider();
+                econ = (Economy) rsp.getProvider();
                 return econ != null;
             }
         }
     }
 
     public void onDisable() {
+        if (this.afkZoneController != null) {
+            this.afkZoneController.cleanup(); // <- CZYSZCZENIE BOSSBARÓW PRZY RELOADZIE
+        }
+
+        if (this.cleanerController != null) {
+            this.cleanerController.clearAllStoredBlocks();
+        }
+
+        if (this.dragonBossManager != null) {
+            this.dragonBossManager.cleanup();
+        }
+
+        if (this.homeManager != null) {
+            this.homeManager.saveData();
+        }
+
         if (this.blockTracker != null) {
             this.blockTracker.save();
         }
@@ -359,6 +410,16 @@ public final class Main extends JavaPlugin {
         if (this.trybTworcyManager != null) {
             this.trybTworcyManager.savePlayers();
             this.trybTworcyManager.cleanup();
+        }
+
+        if (this.costumeManager != null) {
+            this.costumeManager.saveData();
+        }
+        if (this.petManager != null) {
+            this.petManager.saveData();
+        }
+        if (this.parrotManager != null) {
+            this.parrotManager.saveData();
         }
 
         HydroKlatka.cleanupAll();

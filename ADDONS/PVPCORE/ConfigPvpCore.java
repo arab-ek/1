@@ -14,9 +14,9 @@ public class ConfigPvpCore {
   
   public ConfigPvpCore(JavaPlugin plugin) {
     this.plugin = plugin;
-    this.configFile = new File(plugin.getDataFolder(), "config-pvpcore.yml");
+    this.configFile = new File(plugin.getDataFolder(), "addons/config-pvpcore.yml");
     if (!this.configFile.exists())
-      plugin.saveResource("config-pvpcore.yml", false); 
+      plugin.saveResource("addons/config-pvpcore.yml", false);
     reloadConfig();
   }
   

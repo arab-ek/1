@@ -29,9 +29,9 @@ public class ModuleInventory {
   }
   
   public void loadConfig() {
-    File configFile = new File(this.plugin.getDataFolder(), "config-gui.yml");
+    File configFile = new File(this.plugin.getDataFolder(), "addons/config-gui.yml");
     if (!configFile.exists())
-      this.plugin.saveResource("config-gui.yml", false); 
+      this.plugin.saveResource("addons/config-gui.yml", false);
     this.config = (FileConfiguration)YamlConfiguration.loadConfiguration(configFile);
   }
   

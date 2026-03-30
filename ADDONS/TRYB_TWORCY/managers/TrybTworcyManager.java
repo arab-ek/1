@@ -27,9 +27,9 @@ public class TrybTworcyManager {
   }
 
   public void loadConfig() {
-    File configFile = new File(this.plugin.getDataFolder(), "config-tworca.yml");
+    File configFile = new File(this.plugin.getDataFolder(), "addons/config-tworca.yml");
     if (!configFile.exists()) {
-      this.plugin.saveResource("config-tworca.yml", false);
+      this.plugin.saveResource("addons/config-tworca.yml", false);
     }
     this.config = YamlConfiguration.loadConfiguration(configFile);
   }

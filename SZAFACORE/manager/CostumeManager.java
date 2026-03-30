@@ -174,16 +174,17 @@ public class CostumeManager implements Listener {
             folder.mkdirs();
         }
 
-        this.dataFile = new File(folder, "costume_data.yml");
-        if (this.dataFile.exists() && this.dataFile.isDirectory()) {
-            this.dataFile.delete();
+        File dataFolder = new File(this.plugin.getDataFolder(), "data");
+        if (!dataFolder.exists()) {
+            dataFolder.mkdirs(); // Tworzy folder "data"
         }
 
+        this.dataFile = new File(dataFolder, "costume_data.yml");
         if (!this.dataFile.exists()) {
             try {
                 this.dataFile.createNewFile();
             } catch (IOException var11) {
-                this.plugin.getLogger().severe("Błąd podczas tworzenia pliku costume_data.yml: " + var11.getMessage());
+                this.plugin.getLogger().severe("Błąd podczas tworzenia pliku: " + var11.getMessage());
             }
         }
 
@@ -214,32 +215,25 @@ public class CostumeManager implements Listener {
     public void saveData() {
         if (this.dirty && this.dataFile != null) {
             FileConfiguration copy = new YamlConfiguration();
-            Iterator<Entry<UUID, CostumeData>> var2 = this.activeCostumes.entrySet().iterator();
-
-            Entry<UUID, CostumeData> entry;
-            while(var2.hasNext()) {
-                entry = var2.next();
+            for (Entry<UUID, CostumeData> entry : this.activeCostumes.entrySet()) {
                 String uuid = entry.getKey().toString();
                 copy.set(uuid + ".active", entry.getValue().getCostumeId());
                 copy.set(uuid + ".uniqueId", entry.getValue().getUniqueId());
                 copy.set(uuid + ".expiry", entry.getValue().getExpiryTime());
             }
 
-            Iterator<Entry<UUID, Set<String>>> var3 = this.unlockedCostumes.entrySet().iterator();
-
-            while(var3.hasNext()) {
-                Entry<UUID, Set<String>> unlockedEntry = var3.next();
+            for (Entry<UUID, Set<String>> unlockedEntry : this.unlockedCostumes.entrySet()) {
                 copy.set(unlockedEntry.getKey().toString() + ".unlocked", new ArrayList<>(unlockedEntry.getValue()));
             }
 
             this.dirty = false;
-            Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
-                try {
-                    copy.save(this.dataFile);
-                } catch (IOException var3x) {
-                    this.plugin.getLogger().severe("Błąd podczas zapisywania costume_data.yml! " + var3x.getMessage());
-                }
-            });
+            try {
+                // ZMIANA: Zapisujemy synchronicznie (bez schedulera),
+                // aby serwer nie przerwał zapisu podczas wyłączania.
+                copy.save(this.dataFile);
+            } catch (IOException var3x) {
+                this.plugin.getLogger().severe("Błąd podczas zapisywania costume_data.yml! " + var3x.getMessage());
+            }
         }
     }
 
@@ -378,7 +372,13 @@ public class CostumeManager implements Listener {
     }
 
     public double getHealthBonus(Player player) {
-        return 0.0D;
+        String costumeId = this.getActiveCostume(player);
+        if (costumeId == null) {
+            return 0.0D;
+        } else {
+            Costume costume = this.costumeRegistry.getCostume(costumeId);
+            return costume != null ? costume.getHealthBonus(player) : 0.0D;
+        }
     }
 
     public double getAttackBonus(Player player) {
@@ -389,12 +389,8 @@ public class CostumeManager implements Listener {
         (new BukkitRunnable() {
             public void run() {
                 long now = System.currentTimeMillis();
-
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     try {
-                        // 🔥 KLUCZOWE — ciągłe pilnowanie statów
-                        StatsManager.updateStats(player);
-
                         String costumeId = CostumeManager.this.getActiveCostume(player);
                         if (costumeId == null) continue;
 
@@ -420,6 +416,7 @@ public class CostumeManager implements Listener {
                             }
                         }
                     } catch (Exception e) {
+                        // Zapobiega zamknięciu się pętli przy nieoczekiwanym błędzie!
                         e.printStackTrace();
                     }
                 }
@@ -697,23 +694,16 @@ public class CostumeManager implements Listener {
     public void onRespawn(PlayerRespawnEvent event) {
         Player player = event.getPlayer();
         CostumeData data = this.pendingRespawnCostume.remove(player.getUniqueId());
-
         if (data != null) {
-            this.equipCostume(player, data.getCostumeId(), data.getUniqueId(),
-                    data.getExpiryTime() == -1L ? -1L : Math.max(0L, data.getExpiryTime() - System.currentTimeMillis()));
-
-            // 🔥 dodaj to
-            Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-                StatsManager.updateStats(player);
-            }, 20L);
+            this.equipCostume(player, data.getCostumeId(), data.getUniqueId(), data.getExpiryTime() == -1L ? -1L : Math.max(0L, data.getExpiryTime() - System.currentTimeMillis()));
         }
+
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         CostumeData data = this.activeCostumes.get(player.getUniqueId());
-
         if (data != null) {
             if (data.isExpired()) {
                 this.activeCostumes.remove(player.getUniqueId());
@@ -721,35 +711,29 @@ public class CostumeManager implements Listener {
                 return;
             }
 
-            // 🔥 pierwsze ustawienie
             StatsManager.updateStats(player);
-
             Costume costume = this.costumeRegistry.getCostume(data.getCostumeId());
             if (costume != null) {
                 costume.onEquip(player);
             }
-
-            // 🔥 KLUCZOWE — opóźnione nadpisanie (naprawia bug 10 serc)
-            Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
-                if (player.isOnline()) {
-                    StatsManager.updateStats(player);
-                }
-            }, 20L); // 1 sekunda
 
             Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
                 this.updateVisualHiding(player);
             }, 20L);
         }
 
-        // pokazanie kostiumów innych graczy
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> {
             if (player.isOnline()) {
-                for (Entry<UUID, CostumeData> entry : this.activeCostumes.entrySet()) {
+                Iterator<Entry<UUID, CostumeData>> var2 = this.activeCostumes.entrySet().iterator();
+
+                while(var2.hasNext()) {
+                    Entry<UUID, CostumeData> entry = var2.next();
                     Player wearer = Bukkit.getPlayer(entry.getKey());
                     if (wearer != null && wearer.isOnline() && wearer.getWorld().equals(player.getWorld())) {
                         this.updateVisualHidingFor(wearer, player);
                     }
                 }
+
             }
         }, 20L);
     }

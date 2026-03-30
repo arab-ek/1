@@ -33,6 +33,19 @@ public class StatsManager {
       extraHealth += plugin.getParrotManager().getHealthBonus(player);
     }
 
+    // --- ZDROWIE ---
+    AttributeInstance maxHealthAttr = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+    if (maxHealthAttr != null) {
+      for (AttributeModifier mod : new ArrayList<>(maxHealthAttr.getModifiers())) {
+        if (mod.getUniqueId().equals(HEALTH_UID)) {
+          maxHealthAttr.removeModifier(mod);
+        }
+      }
+      if (extraHealth > 0.0D) {
+        maxHealthAttr.addModifier(new AttributeModifier(HEALTH_UID, "szafa_health_bonus", extraHealth * 2.0D, Operation.ADD_NUMBER));
+      }
+    }
+
     // --- OBRAŻENIA ---
     AttributeInstance attackDamageAttr = player.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
     if (attackDamageAttr != null) {

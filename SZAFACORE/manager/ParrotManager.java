@@ -58,7 +58,16 @@ public class ParrotManager implements Listener {
 
     public ParrotManager(Main plugin) {
         this.plugin = plugin;
-        this.dataFile = new File(plugin.getDataFolder(), "parrot_data.yml");
+
+        // 1. Tworzymy główny folder "data" w folderze pluginu
+        File dataFolder = new File(plugin.getDataFolder(), "data");
+        if (!dataFolder.exists()) {
+            dataFolder.mkdirs();
+        }
+
+        // 2. Przypisujemy plik do nowo utworzonego podfolderu
+        this.dataFile = new File(dataFolder, "parrot_data.yml");
+
         this.loadData();
         this.startEffectTask();
     }
