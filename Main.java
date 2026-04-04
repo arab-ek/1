@@ -4,56 +4,7 @@ import java.io.File;
 import java.util.Random;
 import dev.arab.EVENTOWKICORE.commands.AnarchiaEventowkiCommand;
 import dev.arab.EVENTOWKICORE.commands.ExcaliburCommand;
-import dev.arab.EVENTOWKICORE.eventowki.ArcusMagnus;
-import dev.arab.EVENTOWKICORE.eventowki.BalonikZHelem;
-import dev.arab.EVENTOWKICORE.eventowki.BlokWidmo;
-import dev.arab.EVENTOWKICORE.eventowki.BombardaMaxina;
-import dev.arab.EVENTOWKICORE.eventowki.BoskiTopor;
-import dev.arab.EVENTOWKICORE.eventowki.CiepleMleko;
-import dev.arab.EVENTOWKICORE.eventowki.CudownaLatarnia;
-import dev.arab.EVENTOWKICORE.eventowki.Dynamit;
-import dev.arab.EVENTOWKICORE.eventowki.EventItemManager;
-import dev.arab.EVENTOWKICORE.eventowki.Excalibur;
-import dev.arab.EVENTOWKICORE.eventowki.HydroKlatka;
-import dev.arab.EVENTOWKICORE.eventowki.JajkoCreepera;
-import dev.arab.EVENTOWKICORE.eventowki.KoronaAnarchii;
-import dev.arab.EVENTOWKICORE.eventowki.Kosa;
-import dev.arab.EVENTOWKICORE.eventowki.KostkaRubika;
-import dev.arab.EVENTOWKICORE.eventowki.KrewWampira;
-import dev.arab.EVENTOWKICORE.eventowki.KupaAnarchii;
-import dev.arab.EVENTOWKICORE.eventowki.LeweJajko;
-import dev.arab.EVENTOWKICORE.eventowki.Lizak;
-import dev.arab.EVENTOWKICORE.eventowki.LopataGrincha;
-import dev.arab.EVENTOWKICORE.eventowki.LukKupidyna;
-import dev.arab.EVENTOWKICORE.eventowki.MarchewkowaKusza;
-import dev.arab.EVENTOWKICORE.eventowki.MarchewkowyMiecz;
-import dev.arab.EVENTOWKICORE.eventowki.Parawan;
-import dev.arab.EVENTOWKICORE.eventowki.PiekielnaTarcza;
-import dev.arab.EVENTOWKICORE.eventowki.PiekielnyMiecz;
-import dev.arab.EVENTOWKICORE.eventowki.Piernik;
-import dev.arab.EVENTOWKICORE.eventowki.PrzeterminowanyTrunek;
-import dev.arab.EVENTOWKICORE.eventowki.RogJednorozca;
-import dev.arab.EVENTOWKICORE.eventowki.RozaKupidyna;
-import dev.arab.EVENTOWKICORE.eventowki.RozaKupidyna2026;
-import dev.arab.EVENTOWKICORE.eventowki.RozdzkaIluzjonisty;
-import dev.arab.EVENTOWKICORE.eventowki.Rozga;
-import dev.arab.EVENTOWKICORE.eventowki.RozgotowanaKukurydza;
-import dev.arab.EVENTOWKICORE.eventowki.SakiewkaDropu;
-import dev.arab.EVENTOWKICORE.eventowki.SiekieraGrincha;
-import dev.arab.EVENTOWKICORE.eventowki.SmoczyMiecz;
-import dev.arab.EVENTOWKICORE.eventowki.Sniezka;
-import dev.arab.EVENTOWKICORE.eventowki.SplesnialaKanapka;
-import dev.arab.EVENTOWKICORE.eventowki.TotemUlaskawienia;
-import dev.arab.EVENTOWKICORE.eventowki.TrojzabPosejdona;
-import dev.arab.EVENTOWKICORE.eventowki.TurboTrap;
-import dev.arab.EVENTOWKICORE.eventowki.WampirzeJablko;
-import dev.arab.EVENTOWKICORE.eventowki.WataCukrowa;
-import dev.arab.EVENTOWKICORE.eventowki.WedkaNielota;
-import dev.arab.EVENTOWKICORE.eventowki.WedkaSurferka;
-import dev.arab.EVENTOWKICORE.eventowki.WzmocnionaElytra;
-import dev.arab.EVENTOWKICORE.eventowki.ZajeczyMiecz;
-import dev.arab.EVENTOWKICORE.eventowki.ZatrutyOlowek;
-import dev.arab.EVENTOWKICORE.eventowki.ZlamaneSerce;
+import dev.arab.EVENTOWKICORE.eventowki.*;
 import dev.arab.EVENTOWKICORE.hooks.WorldGuardHook;
 import dev.arab.EVENTOWKICORE.listeners.InventoryListener;
 import dev.arab.EVENTOWKICORE.listeners.ItemListener;
@@ -91,16 +42,16 @@ import dev.arab.TOOLS.AFK.AfkZoneController;
 import dev.arab.TOOLS.AFK.ConfigAfk;
 import dev.arab.TOOLS.AFK.SpawnAfkController;
 import dev.arab.TOOLS.CLEANER.CleanerController;
-import dev.arab.TOOLS.DRAGON.ConfigDragonBoss;
-import dev.arab.TOOLS.DRAGON.DragonBossListener;
+import dev.arab.TOOLS.DRAGON.*;
 import dev.arab.TOOLS.DRAGON.DragonBossManager;
-import dev.arab.TOOLS.DRAGON.DragonCommand;
+import dev.arab.TOOLS.DRAGON.commands.DragonCommand;
+import dev.arab.TOOLS.DRAGON.commands.DragonDropCommand;
+import dev.arab.TOOLS.DRAGON.listeners.DragonBossListener;
+import dev.arab.TOOLS.DRAGON.listeners.DragonDropListener;
+import dev.arab.TOOLS.DRAGON.listeners.EndSpawnListener;
 import dev.arab.TOOLS.EXPLOSIONS.AntiExplosiveController;
 import dev.arab.TOOLS.EXPLOSIONS.ConfigExplosions;
-import dev.arab.TOOLS.HOME.ConfigHome;
-import dev.arab.TOOLS.HOME.HomeCommand;
-import dev.arab.TOOLS.HOME.HomeGui;
-import dev.arab.TOOLS.HOME.HomeManager;
+import dev.arab.TOOLS.HOME.*;
 import dev.arab.TOOLS.PROTECTION.AntiHouseController;
 import dev.arab.TOOLS.PROTECTION.BorderController;
 import dev.arab.TOOLS.PROTECTION.ConfigProtection;
@@ -110,6 +61,8 @@ import dev.arab.TOOLS.RTP.RtpButtonListener;
 import dev.arab.TOOLS.RTP.RtpCommand;
 import dev.arab.TOOLS.RTP.RtpManager;
 import dev.arab.TOOLS.SPRAWDZANIE.*;
+import dev.arab.TOOLS.SPRAWDZANIE.commands.PrzyznajeSieCommand;
+import dev.arab.TOOLS.SPRAWDZANIE.commands.SprawdzCommand;
 import dev.arab.TOOLS.VOID.ConfigVoid;
 import dev.arab.TOOLS.VOID.VoidDropController;
 import net.milkbowl.vault.economy.Economy;
@@ -215,21 +168,23 @@ public final class Main extends JavaPlugin {
         this.cleanerController = new dev.arab.TOOLS.CLEANER.CleanerController(this, configCleaner);
         this.getServer().getPluginManager().registerEvents(this.cleanerController, this);
 
-        // Home
-        this.homeManager = new HomeManager(this);
         ConfigHome configHome = new ConfigHome(this);
-        HomeGui homeGui = new HomeGui(this.homeManager, configHome);
-        HomeCommand homeCmd = new HomeCommand(this.homeManager, configHome, homeGui);
-        this.getServer().getPluginManager().registerEvents(homeGui, this);
-        this.getCommand("home").setExecutor(homeCmd);
-        this.getCommand("sethome").setExecutor(homeCmd);
-        this.getCommand("delhome").setExecutor(homeCmd);
+        HomeManager homeManager = new HomeManager(configHome);
+
+        getCommand("home").setExecutor(new HomeCommand(homeManager));
+        getServer().getPluginManager().registerEvents(new HomeListener(homeManager), this);
 
         // Dragon Boss
         ConfigDragonBoss configDragonBoss = new ConfigDragonBoss(this);
         this.dragonBossManager = new DragonBossManager(this, configDragonBoss);
         this.getServer().getPluginManager().registerEvents(new DragonBossListener(this.dragonBossManager), this);
         this.getCommand("boss").setExecutor(new DragonCommand(this.dragonBossManager));
+        getServer().getPluginManager().registerEvents(new EndSpawnListener(), this);
+        DragonDropCommand dragonDropCmd = new DragonDropCommand(configDragonBoss);
+
+        getCommand("dropsmok").setExecutor(dragonDropCmd);
+        getCommand("adropsmok").setExecutor(dragonDropCmd);
+        getServer().getPluginManager().registerEvents(new DragonDropListener(configDragonBoss), this);
 
         // Sprawdzanie
         ConfigSprawdzania configSprawdzania = new ConfigSprawdzania(this);
@@ -356,6 +311,7 @@ public final class Main extends JavaPlugin {
         this.eventItemManager.registerItem(new KupaAnarchii(this));
         this.eventItemManager.registerItem(new SmoczyMiecz(this));
         this.eventItemManager.registerItem(new LukKupidyna(this));
+        this.eventItemManager.registerItem(new SuperNieskonczonaMarchewka(this, cooldownManager));
     }
 
     public WorldGuardHook getWorldGuardHook() { return this.worldGuardHook; }
@@ -397,10 +353,6 @@ public final class Main extends JavaPlugin {
 
         if (this.dragonBossManager != null) {
             this.dragonBossManager.cleanup();
-        }
-
-        if (this.homeManager != null) {
-            this.homeManager.saveData();
         }
 
         if (this.blockTracker != null) {
